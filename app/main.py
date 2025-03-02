@@ -2,10 +2,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import oauth, auth, stations
+from app.routes import oauth, auth, stations, analytics
 from app.core.config import settings
-
 from app.core.scheduler import scheduler
+from app.core.init_data import init_sample_data
+from app.db.session import AsyncSessionLocal
 
 prefix = "/api/v1"
 
@@ -14,6 +15,11 @@ prefix = "/api/v1"
 async def lifespan(app: FastAPI):
     # Startup: start the scheduler
     scheduler.start()
+
+    # Initialize sample data
+    async with AsyncSessionLocal() as db:
+        await init_sample_data(db)
+
     yield
     # Shutdown: shut down the scheduler
     scheduler.shutdown()
@@ -38,6 +44,7 @@ if settings.BACKEND_CORS_ORIGINS:
 app.include_router(auth.router, prefix=prefix)
 app.include_router(oauth.router, prefix=prefix)
 app.include_router(stations.router, prefix=prefix)
+app.include_router(analytics.router, prefix=prefix)
 
 
 @app.get("/")
