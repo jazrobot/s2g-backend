@@ -17,6 +17,8 @@ services:
     volumes:
       - ./:/app
     restart: always
+    # Add entrypoint to ensure start.sh has execute permissions
+    entrypoint: ["/bin/sh", "-c", "chmod +x /app/start.sh && /app/start.sh"]
 
   db:
     image: postgres:13
@@ -27,7 +29,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=s2g
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
 volumes:
   postgres_data:

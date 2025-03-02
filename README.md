@@ -97,6 +97,20 @@ The main entities in the database are:
 - **Users**: Authentication and user management
 - **Stations**: Charging station information including location, capacity, and status
 
+## PostgreSQL Port Configuration
+
+The Docker setup uses port 5433 for PostgreSQL to avoid conflicts with local PostgreSQL instances that might be running on the default port 5432. If you're running the application with Docker, you have two options:
+
+1. Use the configured port 5433 (recommended)
+2. Stop your local PostgreSQL instance if it's running on port 5432
+
+### Troubleshooting Port Conflicts
+
+If you encounter an error like `port 5432 already in use` or `failed to bind to 0.0.0.0:5432`, it means you have a PostgreSQL instance already running on your machine. You can:
+
+- Stop your local PostgreSQL service before running the Docker containers
+- Use the provided port 5433 configuration which is already set in docker-compose.yml
+
 ## Environment Variables
 
 | Variable | Description | Default |
