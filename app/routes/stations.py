@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -5,8 +6,10 @@ from sqlalchemy.future import select
 
 from app.db.session import get_db
 from app.models.station import Station
-from app.schemas.station import StationCreate, Station as StationSchema, StationUpdate, StationStatusUpdate
+from app.schemas.station import StationCreate, Station as StationSchema, StationUpdate, StationStatusUpdate, StationScheduledStatusChange
 from app.routes.auth import get_current_user
+
+from app.core.scheduler import scheduler, scheduled_status_change
 
 router = APIRouter(prefix="/stations", tags=["stations"])
 
@@ -80,3 +83,33 @@ async def update_station_status(
     await db.commit()
     await db.refresh(station)
     return station
+
+
+@router.post("/{station_id}/schedule-status-change")
+async def schedule_status_change(
+    station_id: str,
+    status_change: StationScheduledStatusChange,
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_user)
+):
+    # Validate station exists
+    result = await db.execute(select(Station).where(Station.id == station_id))
+    station = result.scalars().first()
+    if not station:
+        raise HTTPException(status_code=404, detail="Station not found")
+    run_date = datetime.utcnow() + timedelta(seconds=status_change.delay_seconds)
+    print(f"run_date: {run_date}")
+    job = scheduler.add_job(
+        scheduled_status_change,
+        trigger="date",
+        run_date=run_date,
+        args=[station_id, status_change.status],
+        id=f"change_status_{station_id}_{run_date.timestamp()}",
+        replace_existing=True
+    )
+
+    return {
+        "job_id": job.id,
+        "scheduled_run": run_date.isoformat(),
+        "message": f"Status change for station {station_id} scheduled to {status_change.status}"
+    }

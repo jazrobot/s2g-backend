@@ -26,6 +26,11 @@ class StationStatusUpdate(BaseModel):
     status: StationStatus
 
 
+class StationScheduledStatusChange(BaseModel):
+    status: StationStatus
+    delay_seconds: int
+
+
 class StationInDBBase(StationBase):
     id: uuid.UUID
     status: StationStatus
