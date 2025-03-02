@@ -13,10 +13,10 @@ from app.schemas.user import User, UserCreate
 from app.models.user import User as UserModel
 from app.db.session import get_db
 
-router = APIRouter(tags=["authentication"])
+router = APIRouter(prefix="/auth", tags=["authentication"])
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"/auth/login")
+    tokenUrl=f"/api/v1/auth/login")
 
 
 async def get_current_user(
@@ -55,7 +55,7 @@ async def login_access_token(
     result = await db.execute(select(UserModel).where(UserModel.email == form_data.username))
     user = result.scalars().first()
 
-    if user is None or not verify_password(form_data.password, user.hashed_password):
+    if user is None or not verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -92,9 +92,8 @@ async def create_user(
 
     user = UserModel(
         email=user_in.email,
-        hashed_password=get_password_hash(user_in.password),
+        password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
-        is_superuser=user_in.is_superuser,
     )
     db.add(user)
     await db.commit()

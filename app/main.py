@@ -2,22 +2,25 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import oauth, auth
+from app.routes import oauth, auth, stations
 from app.core.config import settings
 from app.core.scheduler import start_scheduler
 from app.db.session import get_db
 
+prefix = "/api/v1"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: create a connection to the database and start the scheduler
-    db = next(get_db())
+    # Startup: open connection
+    db_gen = get_db()
+    db = await db_gen.__anext__()
     app.state.db = db
     start_scheduler(app)
     yield
-    # Shutdown: close the connection to the database
-    if hasattr(app.state, "db"):
-        app.state.db.close()
+    # Shutdown: close connection
+    await db.close()
+
 
 app = FastAPI(
     title="Charging Stations API",
@@ -26,7 +29,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configuración de CORS
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
@@ -37,10 +39,9 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-# Incluye las rutas
-app.include_router(auth.router)
-app.include_router(oauth.router)
-# Próximamente se implementará stations.router
+app.include_router(auth.router, prefix=prefix)
+app.include_router(oauth.router, prefix=prefix)
+app.include_router(stations.router, prefix=prefix)
 
 
 @app.get("/")

@@ -60,7 +60,7 @@ def run_migrations_online() -> None:
 
     """
 
-    connectable = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+    connectable = create_engine(str(settings.DATABASE_URL))
 
     # connectable = engine_from_config(
     #     config.get_section(config.config_ini_section, {}),

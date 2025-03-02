@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from google.oauth2 import id_token
+from google.auth.transport.requests import Request as GoogleRequest
 import httpx
 
 from app.core.config import settings
@@ -9,7 +10,7 @@ from app.core.security import create_access_token
 from app.models.user import User as UserModel
 from app.db.session import get_db
 
-router = APIRouter(tags=["oauth"])
+router = APIRouter(prefix="/oauth", tags=["oauth"])
 
 
 @router.get("/login/google")
@@ -73,7 +74,7 @@ async def google_callback(code: str, db: AsyncSession = Depends(get_db)):
     # Verify the ID token
     try:
         id_info = id_token.verify_oauth2_token(
-            id_token_str, httpx.Client(), settings.GOOGLE_CLIENT_ID)
+            id_token_str, GoogleRequest(), settings.GOOGLE_CLIENT_ID)
     except ValueError as e:
         raise HTTPException(
             status_code=400, detail=f"Invalid ID token: {str(e)}")
